@@ -11,6 +11,113 @@ async function api(action, payload={}) {
   return data;
 }
 function setMessage(el, msg, good=false) { if(!el)return; el.hidden=false; el.textContent=msg; el.className='notice '+(good?'':'notice-warning'); }
+
+function timeToSeconds(value) {
+  if (value == null || value === '') return null;
+
+  const parts = String(value).trim().split(':').map(Number);
+  if (parts.length < 2 || parts.some(n => !Number.isFinite(n))) {
+    return null;
+  }
+
+  if (parts.length === 2) {
+    return parts[0] * 60 + parts[1];
+  }
+
+  return parts[0] * 3600 + parts[1] * 60 + parts[2];
+}
+
+function getDuration(row) {
+  const value = row.duration ?? row.totalTime ?? row.total_time ?? '';
+  return timeToSeconds(value);
+}
+
+function calculateRanks(rows) {
+  const valid = rows
+    .map(r => ({ ...r, _duration: getDuration(r) }))
+    .filter(r =>
+      r._duration !== null &&
+      !['DNF', 'DNS', 'DNQ', 'DSQ', 'INJURY']
+        .includes(String(r.status || r.remark || '').toUpperCase())
+    );
+
+  const categoryGroups = new Map();
+
+  valid.forEach(r => {
+    const category = String(r.category || '').trim();
+    if (!categoryGroups.has(category)) {
+      categoryGroups.set(category, []);
+    }
+    categoryGroups.get(category).push(r);
+  });
+
+  const output = new Map();
+
+  for (const [category, group] of categoryGroups) {
+    group.sort((a, b) => a._duration - b._duration);
+
+    const genderGroups = new Map();
+
+    group.forEach(r => {
+      const gender = String(r.gender || '').trim().toLowerCase();
+      const key = gender.startsWith('m') || gender === 'ကျား'
+        ? 'male'
+        : gender.startsWith('f') || gender === 'မ'
+          ? 'female'
+          : gender;
+
+      if (!genderGroups.has(key)) genderGroups.set(key, []);
+      genderGroups.get(key).push(r);
+    });
+
+    const rankMap = new Map();
+
+    group.forEach((r, i) => {
+      const previous = i > 0 ? group[i - 1]._duration : null;
+      const rank = previous === r._duration
+        ? rankMap.get(r.bib).overallRank
+        : i + 1;
+
+      rankMap.set(r.bib, {
+        ...r,
+        overallRank: rank,
+        overallTotal: group.length
+      });
+    });
+
+    for (const [gender, members] of genderGroups) {
+      members.sort((a, b) => a._duration - b._duration);
+
+      members.forEach((r, i) => {
+        const previous = i > 0 ? members[i - 1]._duration : null;
+        const rank = previous === r._duration
+          ? members[i - 1]._genderRank
+          : i + 1;
+
+        const result = rankMap.get(r.bib);
+        if (result) {
+          result.genderRank = rank;
+          result.genderTotal = members.length;
+          output.set(r.bib, result);
+        }
+      });
+    }
+  }
+
+  return rows.map(r => {
+    const result = output.get(r.bib);
+    return result ? {
+      ...r,
+      overallRank: `${result.overallRank}/${result.overallTotal}`,
+      genderRank: `${result.genderRank}/${result.genderTotal}`
+    } : {
+      ...r,
+      overallRank: '',
+      genderRank: ''
+    };
+  });
+}
+  
 function downloadCsv(filename, rows) {
   if(!rows || !rows.length) { alert('No data to export.'); return; }
   const keys = Object.keys(rows[0]);
