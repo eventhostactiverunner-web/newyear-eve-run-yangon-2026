@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Event Registration | New Year Eve Run Yangon 2026</title><link rel="stylesheet" href="styles.css"></head>
+<body><div class="site-shell"><header class="topbar"><a class="brand" href="index.html"><img class="brand-logo" src="assets/swalsone-logo.png" alt="Swal-Sone Service logo"><span>SWAL-SONE <small>SERVICE</small></span></a><nav><a href="index.html">Home</a><a class="active" href="registration.html">Event Registration</a><a href="official-registration.html">Official Registration List</a><a href="official-results.html">Official Result List</a></nav><a class="btn btn-small" href="#registration-form">Register Now ↗</a></header>
+<main class="page-main"><div class="page-title"><p class="eyebrow">YOUR RACE JOURNEY STARTS HERE</p><h1>Event <span>Registration</span></h1><p>Complete the form and upload your payment screenshot. Your ticket will be available after manual payment approval.</p></div>
+<div class="form-layout"><form id="registration-form" class="panel form-panel">
+<h2>Participant Details</h2><div class="form-grid">
+<label class="field full">Event Name<input id="eventName" readonly value="New Year Eve Run Yangon 2026"></label>
+<label class="field">Event Date<input id="eventDate" readonly value="30 December 2026"></label>
+<label class="field">Distance / Ticket Category<select id="category" name="category" required><option value="">Select distance</option><option value="4.5 KM">4.5 KM</option><option value="9 KM">9 KM</option></select></label>
+<label class="field full price-field">Registration Fee <strong id="fee">Choose a distance to see fee</strong></label>
+<label class="field">Full Name<input name="fullName" required autocomplete="name" maxlength="120"></label>
+<label class="field">Gender<select name="gender" required><option value="">Select gender</option><option>Male</option><option>Female</option><option>Other</option></select></label>
+<label class="field">Nationality<input name="nationality" required value="Myanmar"></label>
+<label class="field">Student?<select id="student" name="student" required><option value="">Select</option><option value="Yes">Yes</option><option value="No">No</option></select></label>
+<label class="field" id="idField">National ID / Passport<input name="nationalId" id="nationalId" maxlength="80"></label>
+<label class="field">Date of Birth<input name="dob" type="date" required></label>
+<label class="field">Father Name<input name="fatherName" required maxlength="120"></label>
+<label class="field">Email<input name="email" type="email" required autocomplete="email"></label>
+<label class="field">Mobile No<input name="mobile" type="tel" required autocomplete="tel"></label>
+<label class="field">Viber No<input name="viber" type="tel"></label>
+<label class="field">City<input name="city" required></label>
+<label class="field">Blood Type<select name="bloodType"><option value="">Select (optional)</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option><option>O+</option><option>O-</option><option>Unknown</option></select></label>
+<label class="field">Emergency Contact No<input name="emergencyContact" type="tel" required></label>
+<label class="field">T-shirt Size<select name="shirtSize" required><option value="">Select size</option><option>XS</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>2XL</option><option>3XL</option></select></label>
+</div>
+<div class="size-chart"><div><p class="eyebrow">SIZE GUIDE</p><h3>Choose your race-fit</h3><p>Sample chart only. Final size chart will be set by the event admin.</p><img src="assets/tshirt-size-chart.svg" alt="Sample T-shirt size chart"></div></div>
+<h2 class="section-gap">Payment</h2><div class="payment-box"><div><p class="eyebrow">KBZPAY</p><h3>Scan to pay</h3><p>Use the official event QR provided by the organiser. Check the amount before paying.</p><div id="kbzQr" class="qr-placeholder">KBZPay QR<br><small>Admin will upload QR</small></div><p id="paymentInstructions" class="muted">Payment details will be published here by the organiser.</p></div><div class="form-grid payment-fields"><label class="field full">Payment Reference (Optional)<input name="paymentReference" maxlength="100"></label><label class="field full">Payment Screenshot <span class="required">*</span><input name="paymentScreenshot" id="paymentScreenshot" type="file" accept="image/*" required><small>Required. JPG/PNG/WebP, up to 5 MB.</small></label></div></div>
+<label class="consent"><input type="checkbox" name="consent" required> I confirm that the information is correct and agree to the event registration terms.</label>
+<button class="btn submit-btn" type="submit" id="submitBtn">Submit Registration <span>→</span></button><p class="muted small">Submitting does not mean payment is approved. The organiser will review it manually.</p><div id="registrationMessage" class="notice" role="status" hidden></div>
+</form>
+<aside class="panel side-panel"><p class="eyebrow">RACE NIGHT</p><h2>Run into a brighter year.</h2><div class="side-art">🏃‍♀️<span>✦</span><span>✺</span><span>🎆</span></div><ul><li>📍 Kandawgyi Park Loop, Yangon</li><li>📅 30 December 2026</li><li>🎽 T-shirt subject to available sizes</li><li>🎟️ QR ticket after approval</li></ul><div class="notice notice-warning">Please keep your Registration ID and email. You will need both to find your approved ticket.</div></aside></div>
+<section class="panel ticket-lookup" id="ticket"><p class="eyebrow">ALREADY REGISTERED?</p><h2>Find Approval Ticket</h2><form id="ticketForm" class="lookup-row"><label class="field">Registration ID<input name="registrationId" required placeholder="e.g. NYR-2026-0001"></label><label class="field">Registration Email<input name="email" type="email" required placeholder="The email used to register"></label><button class="btn" type="submit">Find Ticket</button></form><div id="ticketResult" class="ticket-result" hidden></div></section></main>
+<footer><a class="brand" href="index.html"><img class="brand-logo" src="assets/swalsone-logo.png" alt="Swal-Sone Service logo"><span>SWAL-SONE <small>SERVICE</small></span></a><p>© 2026 Swal-Sone Service. All rights reserved.</p><p class="footer-note">Run together. Celebrate together. Start the new year brighter.</p></footer></div><script src="config.js"></script><script src="app.js"></script></body></html>
