@@ -159,7 +159,36 @@ async function initAdmin(){
  function renderAdminRows(rows){window._adminRows=rows;const q=$('adminSearch').value.toLowerCase();const shown=rows.filter(r=>[r.registrationId,r.name,r.email,r.bib].some(v=>String(v||'').toLowerCase().includes(q)));$('adminRows').innerHTML=shown.length?shown.map(r=>`<tr><td>${escapeHtml(r.registrationId)}</td><td>${escapeHtml(r.name)}</td><td><select data-id="${escapeHtml(r.registrationId)}" data-field="category"><option ${r.category==='4.5 KM'?'selected':''}>4.5 KM</option><option ${r.category==='9 KM'?'selected':''}>9 KM</option></select></td><td><select data-id="${escapeHtml(r.registrationId)}" data-field="shirtSize">${['XS','S','M','L','XL','2XL','3XL'].map(s=>`<option ${r.shirtSize===s?'selected':''}>${s}</option>`).join('')}</select></td><td>${escapeHtml(r.paymentStatus||'Pending')}</td><td>${r.screenshotUrl?`<a class="ticket-link" target="_blank" rel="noopener" href="${escapeHtml(r.screenshotUrl)}">View</a>`:'—'}</td><td>${escapeHtml(r.approvalStatus||'Pending')}</td><td><button class="btn btn-small" data-action="approve" data-id="${escapeHtml(r.registrationId)}">Approve</button> <button class="btn btn-small btn-ghost" data-action="reject" data-id="${escapeHtml(r.registrationId)}">Reject</button> <button class="btn btn-small btn-ghost" data-action="save" data-id="${escapeHtml(r.registrationId)}">Save</button></td></tr>`).join(''):'<tr><td colspan="8" class="empty-cell">No registrations found.</td></tr>'; }
  try{const d=await api('adminRegistrations');const rows=d.rows||[];renderAdminRows(rows);const s=d.stats||{};$('statApproved').textContent=s.approved??0;$('statPending').textContent=s.pending??0;$('stat45').textContent=s['4.5 KM']??0;$('stat9').textContent=s['9 KM']??0;$('shirtCounts').innerHTML=Object.entries(s.shirts||{}).map(([k,v])=>`<span class="size-count">${escapeHtml(k)}: <b>${v}</b></span>`).join('')||'No data';}catch(e){$('adminRows').innerHTML=`<tr><td colspan="8" class="empty-cell">${escapeHtml(e.message)}</td></tr>`;}
  $('adminRows').addEventListener('click',async e=>{const b=e.target.closest('button[data-action]');if(!b)return;const id=b.dataset.id,action=b.dataset.action;try{if(action==='save'){const fields=[...$('adminRows').querySelectorAll(`[data-id="${CSS.escape(id)}"][data-field]`)];const changes={};fields.forEach(f=>changes[f.dataset.field]=f.value);await api('updateParticipant',{registrationId:id,changes});alert('Participant updated.');}else{await api('reviewPayment',{registrationId:id,decision:action});alert(`Registration ${action}d.`);}location.reload();}catch(err){alert(err.message);}});
- for(const [buttonId,action,fileName] of [['exportParticipants','exportParticipants','participants.csv'],['exportPayments','exportPayments','payment-review.csv'],['exportResults','exportResults','results.csv']])$(buttonId).addEventListener('click',async()=>{try{const d=await api(action);downloadCsv(fileName,d.rows||[]);}catch(e){alert(e.message);}});
+ 
+for (const [buttonId, action, fileName] of [
+  ['exportParticipants', 'exportParticipants', 'participants.csv'],
+  ['exportPayments', 'exportPayments', 'payment-review.csv'],
+  ['exportResults', 'exportResults', 'results.csv']
+]) {
+  $(buttonId).addEventListener('click', async () => {
+    try {
+      const d = await api(action);
+      let rows = d.rows || [];
+
+      if (buttonId === 'exportResults') {
+        rows = calculateRanks(rows).map(r => ({
+          BIB: r.bib ?? '',
+          Name: r.name ?? '',
+          Gender: r.gender ?? '',
+          Category: r.category ?? '',
+          Duration: r.duration ?? r.totalTime ?? r.total_time ?? '',
+          'Overall Rank': r.overallRank ?? '',
+          'Gender Rank': r.genderRank ?? ''
+        }));
+      }
+
+      downloadCsv(fileName, rows);
+    } catch (e) {
+      alert(e.message);
+    }
+  });
+}
+
  $('uploadResults').addEventListener('click',async()=>{const f=$('resultCsv').files[0];if(!f)return setMessage($('resultUploadMessage'),'Choose a CSV file first.');try{const text=await f.text();const d=await api('importResults',{csv:text});$('resultUploadMessage').textContent=`Imported ${d.count} result rows.`;}catch(e){$('resultUploadMessage').textContent=e.message;}});
 }
 initCountdown();initRegistration();loadPublicRegistration();loadResults();initAdmin();
