@@ -10,6 +10,15 @@
   <script src="app.js" defer></script>
   <style>
     :root {
+      --navy: #111531;
+      --blue: #8b5cf6;
+      --bg: #080a20;
+      --border: #2a3159;
+      --text: #f7f7ff;
+      --muted: #a9b0d0;
+      --green: #16834a;
+      --red: #c52b36;
+    }
     body { background: radial-gradient(ellipse at 80% 0%, #22245b 0, transparent 35%), var(--bg); color: var(--text); }
     .topbar { border-bottom: 1px solid #ffffff12; background: #080a20d9; backdrop-filter: blur(14px); }
     .brand { color: #f7f7ff; letter-spacing: 1.5px; }
@@ -23,15 +32,6 @@
     .notice { background: #171b3d; color: #40e8ff; }
     .notice.error { background: #3d202f; color: #ff9fba; }
     .notice.good { background: #153e37; color: #53e0ae; }
-      --navy: #111531;
-      --blue: #8b5cf6;
-      --bg: #080a20;
-      --border: #2a3159;
-      --text: #f7f7ff;
-      --muted: #a9b0d0;
-      --green: #16834a;
-      --red: #c52b36;
-    }
     * { box-sizing: border-box; }
     body {
       margin: 0;
@@ -263,10 +263,23 @@
           </div>
           <div class="full">
             <label for="paymentInstructions">Payment instructions</label>
-            <textarea id="paymentInstructions" rows="3"></textarea>
+            <textarea id="paymentInstructions" rows="3" placeholder="Example: Pay the exact amount using KBZPay, then upload the payment screenshot."></textarea>
           </div>
         </div>
         <button id="saveSettingsBtn" type="button" style="margin-top:16px">Save Settings</button>
+        <hr style="border-color:#2a3159;margin:24px 0">
+        <h3>KBZPay QR Code</h3>
+        <p class="muted">Upload the official KBZPay QR image (JPG, PNG or WebP, maximum 3 MB). It will appear automatically on the public registration page.</p>
+        <div style="display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap">
+          <div id="kbzQrPreview" style="width:190px;min-height:120px;display:flex;align-items:center;justify-content:center;background:#080a20;border:1px dashed #555b83;border-radius:12px;padding:10px;color:#a9b0d0;text-align:center">No KBZPay QR uploaded</div>
+          <div style="flex:1;min-width:230px">
+            <label for="kbzQrFile">Choose KBZPay QR image</label>
+            <input id="kbzQrFile" type="file" accept="image/jpeg,image/png,image/webp">
+            <button id="uploadKbzQrBtn" type="button" style="margin-top:12px">Upload KBZPay QR</button>
+            <button id="deleteKbzQrBtn" type="button" class="secondary" style="margin-top:12px">Remove QR</button>
+            <p id="kbzQrMessage" class="muted" role="status"></p>
+          </div>
+        </div>
       </section>
 
       <section class="panel">
@@ -396,6 +409,7 @@
         $('stat45').textContent = stats['4.5 KM'] || 0;
         $('stat9').textContent = stats['9 KM'] || 0;
         renderRegistrations();
+        await loadEventSettings();
       }
 
       function renderRegistrations() {
@@ -601,8 +615,44 @@
         }
       });
 
-      // Load saved settings. If no settings API is configured yet,
-      // defaults remain visible and can be saved.
+      async function loadEventSettings() {
+        try {
+          const data = await api('getSettings');
+          const s = data.settings || {};
+          ['eventName','eventDate','fee45','fee9','capTotal','registrationOpen','paymentInstructions'].forEach(k => { if (s[k] !== undefined && $(k)) $(k).value = s[k]; });
+          renderKbzQr(s.kbzQrUrl || '');
+        } catch (e) { /* Keep defaults visible if saved settings cannot be read. */ }
+      }
+      function renderKbzQr(url) {
+        const box = $('kbzQrPreview');
+        if (!box) return;
+        box.innerHTML = url ? `<img src="${escapeHtml(url)}" alt="Current KBZPay QR" style="display:block;max-width:100%;max-height:220px;object-fit:contain">` : 'No KBZPay QR uploaded';
+      }
+      $('uploadKbzQrBtn').addEventListener('click', async () => {
+        const file = $('kbzQrFile').files[0];
+        const out = $('kbzQrMessage');
+        if (!file) { message(out, 'Choose a KBZPay QR image first.', 'error'); return; }
+        if (!['image/jpeg','image/png','image/webp'].includes(file.type)) { message(out, 'Use a JPG, PNG or WebP image.', 'error'); return; }
+        if (file.size > 3 * 1024 * 1024) { message(out, 'Image must be 3 MB or smaller.', 'error'); return; }
+        const reader = new FileReader();
+        reader.onload = async () => {
+          try {
+            const dataUrl = String(reader.result);
+            const result = await api('uploadKbzQr', { image: { name:file.name, mimeType:file.type, base64:dataUrl.split(',')[1] } });
+            renderKbzQr(result.kbzQrUrl || ''); $('kbzQrFile').value = '';
+            message(out, result.message || 'QR uploaded.', 'good');
+          } catch (e) { message(out, e.message, 'error'); }
+        };
+        reader.onerror = () => message(out, 'Could not read the selected image.', 'error');
+        reader.readAsDataURL(file);
+      });
+      $('deleteKbzQrBtn').addEventListener('click', async () => {
+        if (!confirm('Remove the current KBZPay QR from the registration page?')) return;
+        try { const result = await api('deleteKbzQr'); renderKbzQr(''); message($('kbzQrMessage'), result.message || 'QR removed.', 'good'); }
+        catch (e) { message($('kbzQrMessage'), e.message, 'error'); }
+      });
+
+      // Set safe defaults before the administrator logs in. Saved values load after login.
       async function loadSettings() {
         // Initial values match the default event configuration.
         $('eventName').value = 'New Year Eve Run Yangon 2026';

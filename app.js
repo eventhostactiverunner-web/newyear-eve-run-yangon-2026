@@ -144,8 +144,29 @@ function initCountdown(){if(!$('countdown'))return;const target=new Date('2026-1
 function initRegistration(){
  const form=$('registration-form');if(!form)return;
  const cat=$('category'),fee=$('fee'),student=$('student'),id=$('nationalId'),file=$('paymentScreenshot');
- const updateFee=()=>fee.textContent=cat.value?money((cfg.fees||{})[cat.value]):'Choose a distance to see fee';
+ let liveFees = {...(cfg.fees || {})};
+ const updateFee=()=>fee.textContent=cat.value?money(liveFees[cat.value]):'Choose a distance to see fee';
  cat.addEventListener('change',updateFee);
+ // Load live event settings and the current public KBZPay QR from Apps Script.
+ if (apiReady()) {
+   api('getPublicSettings').then(({settings:s={}})=>{
+     if(s.eventName) $('eventName').value=s.eventName;
+     if(s.eventDate) $('eventDate').value=s.eventDate;
+     if(s.fee45!==undefined) liveFees['4.5 KM']=Number(s.fee45);
+     if(s.fee9!==undefined) liveFees['9 KM']=Number(s.fee9);
+     updateFee();
+     const qr=$('kbzQr');
+     if(qr) {
+       if(s.kbzQrUrl) qr.innerHTML=`<img src="${escapeHtml(s.kbzQrUrl)}" alt="Official KBZPay payment QR code" style="display:block;max-width:100%;width:220px;height:auto;margin:auto;border-radius:8px"><small>Official KBZPay QR</small>`;
+       else qr.innerHTML='KBZPay QR<br><small>QR will be published by the organiser</small>';
+     }
+     const instructions=$('paymentInstructions'); if(instructions) instructions.textContent=s.paymentInstructions||'Pay the exact registration fee and upload your payment screenshot.';
+     if(String(s.registrationOpen).toLowerCase()==='false') {
+       const submit=$('submitBtn'); if(submit){submit.disabled=true;submit.textContent='Registration Closed';}
+       const notice=$('registrationMessage'); if(notice){notice.hidden=false;notice.textContent='Registration is currently closed by the organiser.';}
+     }
+   }).catch(()=>{});
+ }
  student.addEventListener('change',()=>{const exempt=student.value==='Yes';id.required=!exempt;id.disabled=exempt;if(exempt)id.value='';$('idField').style.opacity=exempt?'.55':'1';});
  $('eventName').value=cfg.eventName||'New Year Eve Run Yangon 2026';$('eventDate').value=cfg.eventDate||'2026-12-30';updateFee();
  form.addEventListener('submit',async e=>{e.preventDefault();const msg=$('registrationMessage'),btn=$('submitBtn');if(!file.files[0])return setMessage(msg,'Please upload your payment screenshot.');if(file.files[0].size>(cfg.maxUploadMB||5)*1024*1024)return setMessage(msg,'Screenshot exceeds the 5 MB limit.');if(!apiReady())return setMessage(msg,'Registration backend is not connected yet. Complete the Google Apps Script setup in README.md.');btn.disabled=true;btn.textContent='Submitting…';try{const data=Object.fromEntries(new FormData(form).entries());delete data.paymentScreenshot;delete data.consent;const f=file.files[0];const base64=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result).split(',')[1]);r.onerror=reject;r.readAsDataURL(f)});data.paymentScreenshot={name:f.name,mimeType:f.type,base64};data.fee=(cfg.fees||{})[data.category];const res=await api('register',{participant:data});setMessage(msg,`Registration submitted successfully. Your Registration ID is ${res.registrationId}. Payment is pending manual review. Please keep this ID and your registration email.`,true);form.reset();updateFee();}catch(err){setMessage(msg,err.message);}finally{btn.disabled=false;btn.innerHTML='Submit Registration <span>→</span>';}});
