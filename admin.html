@@ -1,7 +1,606 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin Dashboard | New Year Eve Run</title><link rel="stylesheet" href="styles.css"></head><body><div class="site-shell"><header class="topbar"><a class="brand" href="index.html"><img class="brand-logo" src="assets/swalsone-logo.png" alt="Swal-Sone Service logo"><span>SWAL-SONE <small>ADMIN</small></span></a><nav><a href="index.html">Public Website</a><a class="active" href="admin.html">Admin Dashboard</a></nav><span class="admin-badge">PRIVATE ADMIN</span></header><main class="page-main"><div class="page-title"><p class="eyebrow">EVENT CONTROL CENTRE</p><h1>Admin <span>Dashboard</span></h1><p>Configure the event, review payments, manage participants, set capacity and export data.</p></div>
-<div class="notice notice-warning">Setup required: this dashboard is only a front-end until Google Apps Script is deployed and server-side admin authorization is configured. Do not publish it as a secure admin tool before completing the README steps.</div>
-<section class="admin-grid"><form id="eventSettingsForm" class="panel"><h2>Event Settings</h2><div class="form-grid"><label class="field full">Event Name<input name="eventName" value="New Year Eve Run Yangon 2026" required></label><label class="field">Event Date<input name="eventDate" type="date" value="2026-12-30" required></label><label class="field full">Authorised Admin Gmail Accounts <input type="text" value="Set in Apps Script Script Properties" readonly><small>For multiple admins, enter comma-separated Gmail addresses in Script Properties → ADMIN_EMAILS. Do not use a public form field for access control.</small></label><label class="field">4.5 KM Fee (MMK)<input name="fee45" type="number" min="0" value="35000" required></label><label class="field">9 KM Fee (MMK)<input name="fee9" type="number" min="0" value="70000" required></label><label class="field full">Total Registration Capacity<input name="capTotal" type="number" min="1" value="800" required><small>Combined maximum across 4.5 KM and 9 KM.</small></label><label class="field full">KBZPay Payment Instructions<textarea name="paymentInstructions" rows="3" placeholder="KBZPay account name / payment instructions"></textarea></label><label class="field full">KBZPay QR Image<input name="kbzQr" type="file" accept="image/*"><small>For production, upload to Drive via the backend; do not rely on a local browser file path.</small></label><label class="field full">T-shirt Size Chart Image<input name="sizeChart" type="file" accept="image/*"></label><label class="field full">Registration Open<select name="registrationOpen"><option value="true">Open</option><option value="false">Closed</option></select></label></div><button class="btn" type="submit">Save Event Settings</button><p id="settingsMessage" class="muted small"></p></form>
-<section class="panel"><h2>Registration Overview</h2><div class="stats-grid"><div class="stat"><span>Total Approved</span><strong id="statApproved">—</strong></div><div class="stat"><span>Pending Review</span><strong id="statPending">—</strong></div><div class="stat"><span>4.5 KM</span><strong id="stat45">—</strong></div><div class="stat"><span>9 KM</span><strong id="stat9">—</strong></div></div><h3>T-shirt Size Counts</h3><div id="shirtCounts" class="size-counts">Connect the API to load counts.</div><h3>Data Export</h3><div class="export-buttons"><button class="btn btn-ghost" id="exportParticipants">Export Participants CSV</button><button class="btn btn-ghost" id="exportPayments">Export Payment Review CSV</button><button class="btn btn-ghost" id="exportResults">Export Results CSV</button></div></section></section>
-<section class="panel admin-table-panel"><div class="list-toolbar"><div><p class="eyebrow">MANUAL PAYMENT REVIEW</p><h2>Participant Management</h2></div><input id="adminSearch" placeholder="Search ID, name, email or BIB…"></div><div class="table-wrap"><table><thead><tr><th>Reg ID</th><th>Name</th><th>Category</th><th>Size</th><th>Payment</th><th>Screenshot</th><th>Approval</th><th>Actions</th></tr></thead><tbody id="adminRows"><tr><td colspan="8" class="empty-cell">Connect the Google Apps Script API to load registrations.</td></tr></tbody></table></div></section>
-<section class="panel"><p class="eyebrow">PUBLISH RACE RESULTS</p><h2>Result CSV / Manual Result Entry</h2><p class="muted">Result records should include BIB, Name, Gender, Category, Finish Time and Status. Public pages show Top 10 per category/gender and searchable results.</p><label class="field">Import Results CSV<input type="file" id="resultCsv" accept=".csv,text/csv"></label><button class="btn btn-ghost" id="uploadResults">Upload Results CSV</button><p id="resultUploadMessage" class="muted small"></p></section>
-</main><footer><a class="brand" href="index.html"><img class="brand-logo" src="assets/swalsone-logo.png" alt="Swal-Sone Service logo"><span>SWAL-SONE <small>SERVICE</small></span></a><p>© 2026 Swal-Sone Service. Admin access is restricted by server-side authorization.</p></footer></div><script src="config.js"></script><script src="app.js"></script></body></html>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin Dashboard | Swal-Sone Service</title>
+  <style>
+    :root {
+      --navy: #10213b;
+      --blue: #1769e0;
+      --bg: #f2f5fa;
+      --border: #dfe5ef;
+      --text: #19263b;
+      --muted: #66748a;
+      --green: #16834a;
+      --red: #c52b36;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+    }
+    button, input, select, textarea { font: inherit; }
+    button {
+      border: 0;
+      border-radius: 9px;
+      padding: 11px 15px;
+      font-weight: 700;
+      cursor: pointer;
+      background: var(--blue);
+      color: white;
+    }
+    button:disabled { opacity: .55; cursor: wait; }
+    button.secondary { background: #e8edf5; color: var(--navy); }
+    button.danger { background: var(--red); }
+    button.success { background: var(--green); }
+    input, select, textarea {
+      width: 100%;
+      padding: 11px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: white;
+      color: var(--text);
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      margin: 12px 0 6px;
+    }
+    .hidden { display: none !important; }
+    .topbar {
+      background: var(--navy);
+      color: white;
+      padding: 18px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand { font-weight: 800; font-size: 19px; }
+    .brand small {
+      display: block;
+      font-size: 12px;
+      color: #c6d6ef;
+      margin-top: 4px;
+      font-weight: 400;
+    }
+    main { max-width: 1300px; margin: 25px auto; padding: 0 18px 40px; }
+    .login-wrap {
+      max-width: 430px;
+      margin: 55px auto;
+      background: white;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 10px 35px #10213b12;
+    }
+    .login-wrap h1 { margin-top: 0; }
+    .muted { color: var(--muted); font-size: 13px; line-height: 1.6; }
+    .notice {
+      padding: 12px;
+      border-radius: 8px;
+      margin: 12px 0;
+      background: #e8f2ff;
+      color: #164e9c;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+    .notice.error { background: #fff0f0; color: #9f1e29; }
+    .notice.good { background: #e9f8ef; color: #17683b; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .stat, .panel {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 13px;
+      padding: 18px;
+    }
+    .stat span { display: block; color: var(--muted); font-size: 13px; }
+    .stat strong { display: block; font-size: 27px; margin-top: 8px; }
+    .panel { margin-bottom: 18px; }
+    .panel h2 { margin: 0 0 14px; font-size: 19px; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 9px; margin-bottom: 12px; }
+    .toolbar input, .toolbar select { flex: 1 1 190px; width: auto; }
+    .table-wrap { overflow: auto; }
+    table { border-collapse: collapse; width: 100%; min-width: 800px; }
+    th, td {
+      text-align: left;
+      padding: 11px 10px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      vertical-align: top;
+    }
+    th { background: #f6f8fc; color: #47566d; white-space: nowrap; }
+    td .action { display: inline-block; margin: 2px; padding: 7px 9px; font-size: 12px; }
+    .pill {
+      display: inline-block;
+      border-radius: 99px;
+      padding: 4px 8px;
+      background: #edf1f7;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .pill.pending { background: #fff3d8; color: #865700; }
+    .pill.approved { background: #e0f7e9; color: #17683b; }
+    .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 18px; }
+    .full { grid-column: 1 / -1; }
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 15px; }
+    @media (max-width: 760px) {
+      .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .settings-grid { grid-template-columns: 1fr; }
+      .full { grid-column: auto; }
+      .topbar { padding: 15px; }
+      .brand { font-size: 16px; }
+      main { margin-top: 15px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      SWAL-SONE SERVICE
+      <small>New Year Eve Run Yangon 2026 · Admin Portal</small>
+    </div>
+    <button id="logoutBtn" class="secondary hidden">Log out</button>
+  </header>
+
+  <main>
+    <section id="loginPanel" class="login-wrap">
+      <h1>Admin Login</h1>
+      <p class="muted">Enter your administrator password to access the dashboard.</p>
+
+      <form id="loginForm">
+        <label for="apiUrl">Apps Script Web App URL</label>
+        <input id="apiUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec" required>
+
+        <label for="password">Admin Password</label>
+        <input id="password" type="password" autocomplete="current-password"
+               placeholder="Enter admin password" required>
+
+        <button id="loginBtn" type="submit" style="width:100%;margin-top:18px">
+          Sign in securely
+        </button>
+      </form>
+      <div id="loginMessage" class="notice hidden" role="status"></div>
+      <p class="muted">Use the Web App URL from your Apps Script deployment. Your password is sent to the backend for verification and is not saved in this page.</p>
+    </section>
+
+    <section id="dashboard" class="hidden">
+      <h1>Admin Dashboard</h1>
+      <p class="muted">Manage registrations, payment reviews, event settings and race results.</p>
+      <div id="mainMessage" class="notice hidden" role="status"></div>
+
+      <div class="grid">
+        <div class="stat"><span>Approved</span><strong id="statApproved">0</strong></div>
+        <div class="stat"><span>Pending review</span><strong id="statPending">0</strong></div>
+        <div class="stat"><span>4.5 KM approved</span><strong id="stat45">0</strong></div>
+        <div class="stat"><span>9 KM approved</span><strong id="stat9">0</strong></div>
+      </div>
+
+      <section class="panel">
+        <h2>Registrations & Payment Review</h2>
+        <div class="toolbar">
+          <input id="searchBox" type="search" placeholder="Search name, email, BIB or registration ID">
+          <select id="statusFilter">
+            <option value="All">All statuses</option>
+            <option value="Pending">Pending</option>
+            <option value="Approved">Approved</option>
+            <option value="Rejected">Rejected</option>
+          </select>
+          <button id="refreshBtn" class="secondary" type="button">Refresh</button>
+          <button id="exportParticipantsBtn" type="button">Export Participants CSV</button>
+          <button id="exportPaymentsBtn" type="button">Export Payments CSV</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Registration ID</th><th>Name / Email</th><th>Gender</th>
+                <th>Category</th><th>Shirt</th><th>BIB</th>
+                <th>Payment</th><th>Approval</th><th>Screenshot</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="registrationRows">
+              <tr><td colspan="10">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Event Settings</h2>
+        <div class="settings-grid">
+          <div>
+            <label for="eventName">Event name</label>
+            <input id="eventName">
+          </div>
+          <div>
+            <label for="eventDate">Event date</label>
+            <input id="eventDate" type="date">
+          </div>
+          <div>
+            <label for="fee45">4.5 KM fee (MMK)</label>
+            <input id="fee45" type="number" min="0">
+          </div>
+          <div>
+            <label for="fee9">9 KM fee (MMK)</label>
+            <input id="fee9" type="number" min="0">
+          </div>
+          <div>
+            <label for="capTotal">Participant capacity</label>
+            <input id="capTotal" type="number" min="0">
+          </div>
+          <div>
+            <label for="registrationOpen">Registration status</label>
+            <select id="registrationOpen">
+              <option value="true">Open</option>
+              <option value="false">Closed</option>
+            </select>
+          </div>
+          <div class="full">
+            <label for="paymentInstructions">Payment instructions</label>
+            <textarea id="paymentInstructions" rows="3"></textarea>
+          </div>
+        </div>
+        <button id="saveSettingsBtn" type="button" style="margin-top:16px">Save Settings</button>
+      </section>
+
+      <section class="panel">
+        <h2>Race Results CSV</h2>
+        <p class="muted">
+          Import a CSV containing BIB, Name, Gender, Category and Duration
+          (or TotalTime). Export recalculates Overall Rank and Gender Rank
+          within each category.
+        </p>
+        <div class="toolbar">
+          <input id="resultsFile" type="file" accept=".csv,text/csv">
+          <button id="importResultsBtn" type="button">Import Results CSV</button>
+          <button id="exportResultsBtn" type="button">Export Ranked Results CSV</button>
+        </div>
+        <p class="muted">Import replaces the existing Results sheet. Export a backup before importing new results.</p>
+      </section>
+    </section>
+  </main>
+
+  <div class="footer">© Swal-Sone Service · Admin access protected by server-side password verification</div>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const $ = id => document.getElementById(id);
+      let token = '';
+      let registrations = [];
+
+      // Optional: config.js may define window.EVENT_CONFIG.apiUrl.
+      const configuredUrl = window.EVENT_CONFIG && window.EVENT_CONFIG.apiUrl;
+      if (configuredUrl) $('apiUrl').value = configuredUrl;
+
+      function message(el, text, type = '') {
+        el.textContent = text;
+        el.className = 'notice' + (type ? ' ' + type : '');
+        el.classList.remove('hidden');
+      }
+
+      function clearMessage(el) {
+        el.textContent = '';
+        el.classList.add('hidden');
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, ch => ({
+          '&': '&amp;', '<': '&lt;', '>': '&gt;',
+          '"': '&quot;', "'": '&#39;'
+        })[ch]);
+      }
+
+      function apiUrl() {
+        const url = $('apiUrl').value.trim();
+        if (!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec/.test(url)) {
+          throw new Error('Please enter the correct Apps Script Web App URL ending in /exec.');
+        }
+        return url;
+      }
+
+      async function api(action, payload = {}, needsAuth = true) {
+        const body = { action, ...payload };
+        if (needsAuth && token) body.token = token;
+
+        const response = await fetch(apiUrl(), {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(body)
+        });
+
+        if (!response.ok) throw new Error('Server returned HTTP ' + response.status);
+
+        const data = await response.json();
+        if (!data.ok) {
+          if (needsAuth && /session|login required/i.test(data.error || '')) {
+            lockDashboard();
+          }
+          throw new Error(data.error || 'Request failed.');
+        }
+        return data;
+      }
+
+      function lockDashboard() {
+        token = '';
+        $('dashboard').classList.add('hidden');
+        $('logoutBtn').classList.add('hidden');
+        $('loginPanel').classList.remove('hidden');
+      }
+
+      $('loginForm').addEventListener('submit', async event => {
+        event.preventDefault();
+        clearMessage($('loginMessage'));
+        $('loginBtn').disabled = true;
+        $('loginBtn').textContent = 'Checking...';
+
+        try {
+          const password = $('password').value;
+          const result = await api('loginAdmin', { password }, false);
+          token = result.token;
+          $('password').value = '';
+          $('loginPanel').classList.add('hidden');
+          $('dashboard').classList.remove('hidden');
+          $('logoutBtn').classList.remove('hidden');
+          message($('mainMessage'), 'Login successful.', 'good');
+          await refreshAll();
+        } catch (error) {
+          message($('loginMessage'), error.message, 'error');
+        } finally {
+          $('loginBtn').disabled = false;
+          $('loginBtn').textContent = 'Sign in securely';
+        }
+      });
+
+      $('logoutBtn').addEventListener('click', async () => {
+        try {
+          if (token) await api('logoutAdmin', { token }, false);
+        } catch (_) {}
+        lockDashboard();
+        message($('loginMessage'), 'You have logged out.', 'good');
+      });
+
+      async function refreshAll() {
+        const data = await api('adminRegistrations');
+        registrations = data.rows || [];
+        const stats = data.stats || {};
+        $('statApproved').textContent = stats.approved || 0;
+        $('statPending').textContent = stats.pending || 0;
+        $('stat45').textContent = stats['4.5 KM'] || 0;
+        $('stat9').textContent = stats['9 KM'] || 0;
+        renderRegistrations();
+      }
+
+      function renderRegistrations() {
+        const query = $('searchBox').value.trim().toLowerCase();
+        const status = $('statusFilter').value;
+
+        const shown = registrations.filter(r => {
+          const text = [
+            r.registrationId, r.name, r.email, r.bib, r.category
+          ].join(' ').toLowerCase();
+
+          return (!query || text.includes(query)) &&
+            (status === 'All' || r.approvalStatus === status);
+        });
+
+        const tbody = $('registrationRows');
+
+        if (!shown.length) {
+          tbody.innerHTML = '<tr><td colspan="10">No registrations found.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = shown.map(r => {
+          const id = escapeHtml(r.registrationId);
+          const approved = r.approvalStatus === 'Approved';
+          const pending = r.approvalStatus === 'Pending';
+
+          const statusClass = approved ? 'approved' : pending ? 'pending' : '';
+          const screenshot = r.screenshotUrl
+            ? `<a href="${escapeHtml(r.screenshotUrl)}" target="_blank" rel="noopener noreferrer">Open</a>`
+            : '—';
+
+          const actions = pending
+            ? `<button class="action success" data-action="approve" data-id="${id}">Approve</button>
+               <button class="action danger" data-action="reject" data-id="${id}">Reject</button>`
+            : '';
+
+          return `<tr>
+            <td>${id}</td>
+            <td><strong>${escapeHtml(r.name)}</strong><br>${escapeHtml(r.email)}</td>
+            <td>${escapeHtml(r.gender)}</td>
+            <td>${escapeHtml(r.category)}</td>
+            <td>${escapeHtml(r.shirtSize)}</td>
+            <td>${escapeHtml(r.bib)}</td>
+            <td>${escapeHtml(r.paymentStatus)}</td>
+            <td><span class="pill ${statusClass}">${escapeHtml(r.approvalStatus)}</span></td>
+            <td>${screenshot}</td>
+            <td>
+              ${actions}
+              <button class="action secondary" data-action="bib" data-id="${id}">Set BIB</button>
+            </td>
+          </tr>`;
+        }).join('');
+      }
+
+      $('registrationRows').addEventListener('click', async event => {
+        const btn = event.target.closest('button[data-action]');
+        if (!btn) return;
+
+        const id = btn.dataset.id;
+        const action = btn.dataset.action;
+        btn.disabled = true;
+
+        try {
+          if (action === 'approve' || action === 'reject') {
+            const promptText = action === 'approve'
+              ? 'Approve payment for ' + id + '?'
+              : 'Reject payment for ' + id + '?';
+
+            if (!confirm(promptText)) return;
+
+            await api('reviewPayment', {
+              registrationId: id,
+              decision: action
+            });
+
+            message($('mainMessage'), 'Payment review saved.', 'good');
+            await refreshAll();
+
+          } else if (action === 'bib') {
+            const bib = prompt('Enter BIB number for ' + id + ':');
+            if (bib === null || !bib.trim()) return;
+
+            await api('assignBib', { registrationId: id, bib: bib.trim() });
+            message($('mainMessage'), 'BIB assigned.', 'good');
+            await refreshAll();
+          }
+        } catch (error) {
+          message($('mainMessage'), error.message, 'error');
+        } finally {
+          btn.disabled = false;
+        }
+      });
+
+      $('searchBox').addEventListener('input', renderRegistrations);
+      $('statusFilter').addEventListener('change', renderRegistrations);
+
+      $('refreshBtn').addEventListener('click', async () => {
+        try {
+          await refreshAll();
+          message($('mainMessage'), 'Data refreshed.', 'good');
+        } catch (error) {
+          message($('mainMessage'), error.message, 'error');
+        }
+      });
+
+      function downloadCsv(filename, rows) {
+        if (!rows || !rows.length) {
+          alert('No data to export.');
+          return;
+        }
+
+        const keys = Object.keys(rows[0]);
+        const quote = value =>
+          '"' + String(value ?? '').replace(/"/g, '""') + '"';
+
+        const csv = [
+          keys.map(quote).join(','),
+          ...rows.map(row => keys.map(key => quote(row[key])).join(','))
+        ].join('\r\n');
+
+        const blob = new Blob(['\ufeff' + csv], {
+          type: 'text/csv;charset=utf-8;'
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+
+      async function exportKind(kind, filename) {
+        const data = await api(kind);
+        downloadCsv(filename, data.rows || []);
+      }
+
+      $('exportParticipantsBtn').addEventListener('click', async () => {
+        try {
+          await exportKind('exportParticipants', 'participants.csv');
+        } catch (e) {
+          message($('mainMessage'), e.message, 'error');
+        }
+      });
+
+      $('exportPaymentsBtn').addEventListener('click', async () => {
+        try {
+          await exportKind('exportPayments', 'payments.csv');
+        } catch (e) {
+          message($('mainMessage'), e.message, 'error');
+        }
+      });
+
+      $('exportResultsBtn').addEventListener('click', async () => {
+        try {
+          await exportKind('exportResults', 'results-ranked.csv');
+        } catch (e) {
+          message($('mainMessage'), e.message, 'error');
+        }
+      });
+
+      $('importResultsBtn').addEventListener('click', async () => {
+        const file = $('resultsFile').files[0];
+        if (!file) {
+          message($('mainMessage'), 'Choose a CSV file first.', 'error');
+          return;
+        }
+
+        if (!confirm('Importing replaces all rows in the Results sheet. Continue?')) {
+          return;
+        }
+
+        try {
+          const csv = await file.text();
+          const data = await api('importResults', { csv });
+          message(
+            $('mainMessage'),
+            `${data.message || 'Import complete.'} Rows imported: ${data.count || 0}`,
+            'good'
+          );
+          $('resultsFile').value = '';
+        } catch (e) {
+          message($('mainMessage'), e.message, 'error');
+        }
+      });
+
+      $('saveSettingsBtn').addEventListener('click', async () => {
+        const settings = {
+          eventName: $('eventName').value.trim(),
+          eventDate: $('eventDate').value,
+          fee45: $('fee45').value,
+          fee9: $('fee9').value,
+          capTotal: $('capTotal').value,
+          registrationOpen: $('registrationOpen').value,
+          paymentInstructions: $('paymentInstructions').value
+        };
+
+        try {
+          await api('saveSettings', { settings });
+          message($('mainMessage'), 'Event settings saved.', 'good');
+        } catch (e) {
+          message($('mainMessage'), e.message, 'error');
+        }
+      });
+
+      // Load saved settings. If no settings API is configured yet,
+      // defaults remain visible and can be saved.
+      async function loadSettings() {
+        // Initial values match the default event configuration.
+        $('eventName').value = 'New Year Eve Run Yangon 2026';
+        $('eventDate').value = '2026-12-30';
+        $('fee45').value = 35000;
+        $('fee9').value = 70000;
+        $('capTotal').value = 800;
+        $('registrationOpen').value = 'true';
+        $('paymentInstructions').value = '';
+      }
+
+      // Keep the login panel as the default state.
+      loadSettings();
+    })();
+  </script>
+</body>
+</html>
