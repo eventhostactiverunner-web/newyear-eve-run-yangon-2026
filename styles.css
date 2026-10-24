@@ -44,3 +44,81 @@
     padding: 10px 12px;
   }
 }
+
+/* Print only the race ticket */
+@media print {
+  @page {
+    size: A5 portrait;
+    margin: 10mm;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  #ticketResult,
+  #ticketResult * {
+    visibility: visible !important;
+  }
+
+  #ticketResult {
+    display: block !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    background: white !important;
+    color: #111827 !important;
+    box-shadow: none !important;
+  }
+
+  #ticketResult .ticket-card {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 18px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 22px !important;
+    border: 2px solid #172554 !important;
+    border-top: 8px solid #f97316 !important;
+    border-radius: 14px !important;
+    background: white !important;
+    color: #111827 !important;
+    box-shadow: none !important;
+    break-inside: avoid !important;
+  }
+
+  #ticketResult .ticket-card img {
+    display: block !important;
+    width: 125px !important;
+    max-width: 35% !important;
+    height: auto !important;
+    object-fit: contain !important;
+  }
+
+  #ticketResult .ticket-card h3 {
+    color: #172554 !important;
+    font-size: 20pt !important;
+    margin: 6px 0 !important;
+  }
+
+  #ticketResult .ticket-card p {
+    color: #334155 !important;
+    font-size: 10pt !important;
+    line-height: 1.7 !important;
+  }
+
+  #ticketResult .ticket-card .eyebrow {
+    color: #ea580c !important;
+    font-weight: 800 !important;
+    letter-spacing: 1px !important;
+  }
+
+  #ticketResult #printTicket {
+    display: none !important;
+  }
+}
