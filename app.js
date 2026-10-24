@@ -156,9 +156,10 @@ function initRegistration(){
      if(s.fee9!==undefined) liveFees['9 KM']=Number(s.fee9);
      updateFee();
      const qr=$('kbzQr');
-     if(qr) {
-       if(s.kbzQrUrl) qr.innerHTML=`<img src="${escapeHtml(s.kbzQrUrl)}" alt="Official KBZPay payment QR code" style="display:block;max-width:100%;width:220px;height:auto;margin:auto;border-radius:8px"><small>Official KBZPay QR</small>`;
-       else qr.innerHTML='KBZPay QR<br><small>QR will be published by the organiser</small>';
+     // Keep the local assets/kbzpay-qr.png image as the default.
+     // Only replace it when the backend explicitly provides a hosted QR URL.
+     if(qr && s.kbzQrUrl) {
+       qr.innerHTML=`<img src="${escapeHtml(s.kbzQrUrl)}" alt="Official KBZPay payment QR code" style="display:block;max-width:100%;width:220px;height:auto;margin:0 auto 8px;border-radius:8px"><small>Official KBZPay QR</small>`;
      }
      const instructions=$('paymentInstructions'); if(instructions) instructions.textContent=s.paymentInstructions||'Pay the exact registration fee and upload your payment screenshot.';
      if(String(s.registrationOpen).toLowerCase()==='false') {
@@ -175,68 +176,6 @@ function initRegistration(){
 async function initAdmin(){
  if(!$('eventSettingsForm'))return;
  const form=$('eventSettingsForm');
- // KBZPay QR image upload
-const qrInput = $('kbzQr');
-const qrButton = $('uploadKbzQr');
-const qrMessage = $('kbzQrMessage');
-
-if (qrButton && qrInput) {
-  qrButton.addEventListener('click', async () => {
-    const file = qrInput.files[0];
-
-    if (!file) {
-      setMessage(qrMessage, 'Please choose a KBZPay QR image.');
-      return;
-    }
-
-    if (!file.type.startsWith('image/')) {
-      setMessage(qrMessage, 'Please choose an image file.');
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      setMessage(qrMessage, 'Image must be smaller than 5 MB.');
-      return;
-    }
-
-    qrButton.disabled = true;
-    qrButton.textContent = 'Uploading...';
-
-    try {
-      const base64 = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () =>
-          resolve(String(reader.result).split(',')[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-
-      const result = await api('uploadKbzQr', {
-        name: file.name,
-        mimeType: file.type,
-        base64
-      });
-
-      setMessage(qrMessage, 'KBZPay QR uploaded successfully.', true);
-
-      if (result.kbzQrUrl) {
-        let preview = $('kbzQrPreview');
-
-        if (preview) {
-          preview.innerHTML =
-            `<img src="${escapeHtml(result.kbzQrUrl)}"
-              alt="KBZPay QR"
-              style="max-width:220px;width:100%;height:auto">`;
-        }
-      }
-    } catch (error) {
-      setMessage(qrMessage, error.message);
-    } finally {
-      qrButton.disabled = false;
-      qrButton.textContent = 'Upload KBZPay QR';
-    }
-  });
-}
  form.addEventListener('submit',async e=>{e.preventDefault();const out=$('settingsMessage');try{const data=Object.fromEntries(new FormData(form).entries());delete data.kbzQr;delete data.sizeChart;await api('saveSettings',{settings:data});out.textContent='Settings saved.';}catch(err){out.textContent=err.message;}});
  $('adminSearch').addEventListener('input',()=>renderAdminRows(window._adminRows||[]));
  function renderAdminRows(rows){window._adminRows=rows;const q=$('adminSearch').value.toLowerCase();const shown=rows.filter(r=>[r.registrationId,r.name,r.email,r.bib].some(v=>String(v||'').toLowerCase().includes(q)));$('adminRows').innerHTML=shown.length?shown.map(r=>`<tr><td>${escapeHtml(r.registrationId)}</td><td>${escapeHtml(r.name)}</td><td><select data-id="${escapeHtml(r.registrationId)}" data-field="category"><option ${r.category==='4.5 KM'?'selected':''}>4.5 KM</option><option ${r.category==='9 KM'?'selected':''}>9 KM</option></select></td><td><select data-id="${escapeHtml(r.registrationId)}" data-field="shirtSize">${['XS','S','M','L','XL','2XL','3XL'].map(s=>`<option ${r.shirtSize===s?'selected':''}>${s}</option>`).join('')}</select></td><td>${escapeHtml(r.paymentStatus||'Pending')}</td><td>${r.screenshotUrl?`<a class="ticket-link" target="_blank" rel="noopener" href="${escapeHtml(r.screenshotUrl)}">View</a>`:'—'}</td><td>${escapeHtml(r.approvalStatus||'Pending')}</td><td><button class="btn btn-small" data-action="approve" data-id="${escapeHtml(r.registrationId)}">Approve</button> <button class="btn btn-small btn-ghost" data-action="reject" data-id="${escapeHtml(r.registrationId)}">Reject</button> <button class="btn btn-small btn-ghost" data-action="save" data-id="${escapeHtml(r.registrationId)}">Save</button></td></tr>`).join(''):'<tr><td colspan="8" class="empty-cell">No registrations found.</td></tr>'; }
