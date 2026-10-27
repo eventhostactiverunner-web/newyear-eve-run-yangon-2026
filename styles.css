@@ -159,3 +159,138 @@
     visibility: hidden !important;
   }
 }
+
+/* =========================================
+   MOBILE REGISTRATION - LARGER & READABLE
+   ========================================= */
+
+@media (max-width: 700px) {
+  /* Main page description */
+  .page-title > p:last-child {
+    font-size: 16px;
+    line-height: 1.8;
+  }
+
+  /* Section headings */
+  .panel h2 {
+    font-size: 24px;
+    line-height: 1.4;
+  }
+
+  .panel h3 {
+    font-size: 19px;
+    line-height: 1.5;
+  }
+
+  /* Form field labels */
+  .field {
+    font-size: 16px;
+    line-height: 1.6;
+    gap: 9px;
+  }
+
+  /* Text boxes and dropdowns */
+  .field input,
+  .field select,
+  .field textarea {
+    font-size: 16px;
+    min-height: 50px;
+    padding: 13px 14px;
+    border-radius: 12px;
+  }
+
+  /* Registration fee */
+  .price-field {
+    font-size: 16px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .price-field strong {
+    font-size: 19px;
+  }
+
+  /* Payment instructions */
+  .payment-box p:not(.eyebrow) {
+    font-size: 15px;
+    line-height: 1.8;
+  }
+
+  .field small,
+  .small,
+  .notice {
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  /* Consent text */
+  .consent {
+    font-size: 15px;
+    line-height: 1.8;
+    gap: 12px;
+  }
+
+  .consent input {
+    width: 20px;
+    height: 20px;
+    flex: 0 0 20px;
+  }
+
+  /* Buttons */
+  .btn,
+  .btn-small,
+  .submit-btn {
+    font-size: 16px;
+    min-height: 50px;
+    padding: 14px 18px;
+  }
+
+  .submit-btn {
+    width: 100%;
+  }
+
+  /* Race information */
+  .side-panel ul {
+    font-size: 15px;
+    line-height: 1.8;
+    gap: 14px;
+  }
+
+  .side-panel h2 {
+    font-size: 32px;
+  }
+
+  /* Approval ticket lookup */
+  .ticket-lookup .field {
+    font-size: 16px;
+  }
+
+  /* More comfortable spacing */
+  .panel {
+    padding: 20px 16px;
+  }
+
+  .form-grid {
+    gap: 18px;
+  }
+
+  .page-main {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  /* Navigation menu */
+  .topbar nav a {
+    font-size: 14px;
+    padding: 12px;
+  }
+}
+
+/* Prevent mobile browsers from shrinking form text */
+@media (max-width: 700px) {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+}
+
