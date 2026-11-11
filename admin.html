@@ -266,6 +266,18 @@
             <textarea id="paymentInstructions" rows="3" placeholder="Example: Pay the exact amount using KBZPay, then upload the payment screenshot."></textarea>
           </div>
         </div>
+        <hr style="border-color:#2a3159;margin:24px 0">
+        <h3>T-Shirt Stock Management</h3>
+        <p class="muted">Set the available quantity for each size. Only Approved registrations count against stock. Pending and Rejected registrations do not count. Approval is checked again before confirming a participant.</p>
+        <div class="settings-grid" id="tshirtStockGrid">
+          <div><label for="stock3XL">3XL Stock Quantity</label><input id="stock3XL" type="number" min="0" step="1" value="0"><small id="stockInfo3XL" class="muted">Approved: 0 · Remaining: 0</small></div>
+          <div><label for="stock2XL">2XL Stock Quantity</label><input id="stock2XL" type="number" min="0" step="1" value="0"><small id="stockInfo2XL" class="muted">Approved: 0 · Remaining: 0</small></div>
+          <div><label for="stockXL">XL Stock Quantity</label><input id="stockXL" type="number" min="0" step="1" value="0"><small id="stockInfoXL" class="muted">Approved: 0 · Remaining: 0</small></div>
+          <div><label for="stockL">L Stock Quantity</label><input id="stockL" type="number" min="0" step="1" value="0"><small id="stockInfoL" class="muted">Approved: 0 · Remaining: 0</small></div>
+          <div><label for="stockM">M Stock Quantity</label><input id="stockM" type="number" min="0" step="1" value="0"><small id="stockInfoM" class="muted">Approved: 0 · Remaining: 0</small></div>
+          <div><label for="stockS">S Stock Quantity</label><input id="stockS" type="number" min="0" step="1" value="0"><small id="stockInfoS" class="muted">Approved: 0 · Remaining: 0</small></div>
+          <div><label for="stockXS">XS Stock Quantity</label><input id="stockXS" type="number" min="0" step="1" value="0"><small id="stockInfoXS" class="muted">Approved: 0 · Remaining: 0</small></div>
+        </div>
         <button id="saveSettingsBtn" type="button" style="margin-top:16px">Save Settings</button>
         <hr style="border-color:#2a3159;margin:24px 0">
         <h3>KBZPay QR Code</h3>
@@ -604,7 +616,8 @@
           fee9: $('fee9').value,
           capTotal: $('capTotal').value,
           registrationOpen: $('registrationOpen').value,
-          paymentInstructions: $('paymentInstructions').value
+          paymentInstructions: $('paymentInstructions').value,
+          tshirtStock: Object.fromEntries(['3XL','2XL','XL','L','M','S','XS'].map(size => [size, Math.max(0, Math.floor(Number($('stock' + size).value) || 0))]))
         };
 
         try {
@@ -620,6 +633,13 @@
           const data = await api('getSettings');
           const s = data.settings || {};
           ['eventName','eventDate','fee45','fee9','capTotal','registrationOpen','paymentInstructions'].forEach(k => { if (s[k] !== undefined && $(k)) $(k).value = s[k]; });
+          const stock = s.tshirtStock || {};
+          ['3XL','2XL','XL','L','M','S','XS'].forEach(size => {
+            const input = $('stock' + size);
+            if (input) input.value = Number(stock[size] || 0);
+            const info = $('stockInfo' + size), usage = (data.tshirtAvailability || {})[size];
+            if (info && usage) info.textContent = `Approved: ${usage.used} · Remaining: ${usage.remaining}`;
+          });
           renderKbzQr(s.kbzQrUrl || '');
         } catch (e) { /* Keep defaults visible if saved settings cannot be read. */ }
       }

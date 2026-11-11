@@ -21,7 +21,7 @@
 <label class="field">City<input name="city" required></label>
 <label class="field">Blood Type<select name="bloodType"><option value="">Select (optional)</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option><option>O+</option><option>O-</option><option>Unknown</option></select></label>
 <label class="field">Emergency Contact No<input name="emergencyContact" type="tel" required></label>
-<label class="field">T-shirt Size<select name="shirtSize" required><option value="">Select size</option><option>XS</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>2XL</option><option>3XL</option></select></label>
+<label class="field">T-shirt Size<select id="shirtSize" name="shirtSize" required><option value="">Select size</option><option value="XS">XS</option><option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option><option value="2XL">2XL</option><option value="3XL">3XL</option></select><small id="shirtStockStatus" class="muted" aria-live="polite">Checking available sizes…</small></label>
 </div>
 <div class="size-chart"><div><p class="eyebrow">SIZE GUIDE</p><h3>Choose your race-fit</h3></p><img src="assets/tshirt-size-chart.svg" alt="Sample T-shirt size chart"></div></div>
 <h2 class="section-gap">Payment</h2><div class="payment-box"><div><p class="eyebrow">KBZPAY</p><h3>Scan to pay</h3><p>Use the official event QR provided by the organiser. Check the amount before paying.</p><div id="kbzQr" class="qr-placeholder">

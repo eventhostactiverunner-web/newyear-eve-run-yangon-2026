@@ -105,6 +105,30 @@ function initRegistration(){
   const form=$('registration-form');if(!form)return;
   const cat=$('category'),fee=$('fee'),student=$('student'),id=$('nationalId'),file=$('paymentScreenshot');
   let liveFees={...(cfg.fees||{})};
+  let shirtAvailability={};
+  const shirtSelect=$('shirtSize'),shirtStatus=$('shirtStockStatus');
+  const updateShirtStatus=()=>{
+    if(!shirtSelect)return;
+    const selected=shirtSelect.value,stock=shirtAvailability[selected];
+    if(!selected){if(shirtStatus){shirtStatus.textContent='Choose a size to see availability.';shirtStatus.style.color='';shirtStatus.style.fontWeight='';}return;}
+    if(!stock){if(shirtStatus){shirtStatus.textContent='Stock availability is loading.';shirtStatus.style.color='';shirtStatus.style.fontWeight='';}return;}
+    if(stock.remaining<=0){if(shirtStatus){shirtStatus.textContent='OUT OF STOCK';shirtStatus.style.color='#dc2626';shirtStatus.style.fontWeight='800';}}
+    else if(shirtStatus){shirtStatus.textContent=`Available — ${stock.remaining} left`;shirtStatus.style.color='#15803d';shirtStatus.style.fontWeight='800';}
+  };
+  if(shirtSelect)shirtSelect.addEventListener('change',updateShirtStatus);
+  const applyShirtAvailability=(availability)=>{
+    if(!shirtSelect)return;
+    shirtAvailability=availability||{};
+    [...shirtSelect.options].forEach(option=>{
+      const size=option.value;if(!size||!shirtAvailability[size])return;
+      const stock=shirtAvailability[size],soldOut=Number(stock.remaining)<=0;
+      option.disabled=soldOut;
+      option.textContent=soldOut?`${size} — OUT OF STOCK`:`${size} — Available (${stock.remaining} left)`;
+      option.style.color=soldOut?'#dc2626':'';
+    });
+    if(shirtSelect.value&&shirtSelect.selectedOptions[0]&&shirtSelect.selectedOptions[0].disabled)shirtSelect.value='';
+    updateShirtStatus();
+  };
   const updateFee=()=>{if(fee)fee.textContent=cat&&cat.value?money(liveFees[cat.value]):'Choose a distance to see fee';};
   if(cat)cat.addEventListener('change',updateFee);
 
@@ -116,6 +140,7 @@ function initRegistration(){
       if(s.fee45!==undefined&&s.fee45!=='')liveFees['4.5 KM']=Number(s.fee45);
       if(s.fee9!==undefined&&s.fee9!=='')liveFees['9 KM']=Number(s.fee9);
       updateFee();
+      applyShirtAvailability(s.tshirtAvailability||{});
       const qr=$('kbzQr');
       if(qr&&s.kbzQrUrl)qr.innerHTML=`<img src="${escapeHtml(s.kbzQrUrl)}" alt="Official KBZPay payment QR code" style="display:block;max-width:100%;width:220px;height:auto;margin:0 auto 8px;border-radius:8px"><small>Official KBZPay QR</small>`;
       const instructions=$('paymentInstructions');if(instructions)instructions.textContent=s.paymentInstructions||'Pay the exact registration fee and upload your payment screenshot.';
@@ -143,7 +168,8 @@ function initRegistration(){
       data.paymentScreenshot={name:f.name,mimeType:f.type,base64};data.fee=(cfg.fees||{})[data.category];
       const res=await api('register',{participant:data});
       setMessage(msg,`Registration submitted successfully. Your Registration ID is ${res.registrationId}. Payment is pending manual review. Please keep this ID and your registration email.`,true);
-      form.reset();updateFee();
+      form.reset();updateFee();updateShirtStatus();
+      try{const fresh=await api('getPublicSettings');applyShirtAvailability(fresh.settings?.tshirtAvailability||{});}catch(_){}
     }catch(err){setMessage(msg,err.message);}
     finally{btn.disabled=false;btn.innerHTML='Submit Registration <span>→</span>';}
   });
